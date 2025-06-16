@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel EspoCRM</title>
+    <style>
+        /* Estilos para garantir que o iframe ocupe todo o espaço */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+            background-color: #f4f6f8; /* Cor de fundo semelhante ao Chatwoot */
+        }
+        #espocrm-iframe {
+            border: none;
+            height: 100%;
+            width: 100%;
+        }
+        #loading-message {
+            padding: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-message">Carregando informações do EspoCRM...</div>
+    <iframe id="espocrm-iframe" style="display:none;"></iframe>
+
+    <script>
+        // ******************************************************
+        // ** CONFIGURE ESTA VARIÁVEL **
+        // Substitua pela URL base da sua instância do EspoCRM
+        const ESPO_BASE_URL = 'https://seu-dominio-espocrm.com';
+        // ******************************************************
+
+        // Ouve a mensagem enviada pelo Chatwoot
+        window.addEventListener('message', function(event) {
+            // Verifica se a mensagem é do tipo esperado pelo Chatwoot
+            if (event.data.event === 'chatwoot:on-message') {
+                const conversation = event.data.data;
+                const contact = conversation.contact;
+
+                if (contact && contact.email) {
+                    // Se houver um contato com e-mail, construa a URL de pesquisa do EspoCRM
+                    // Esta URL pesquisa por um Contato com o endereço de e-mail correspondente.
+                    const emailEncoded = encodeURIComponent(`'${contact.email}'`);
+                    const espocrmUrl = `${ESPO_BASE_URL}/#Contact/list?search=emailAddress%3D%3D${emailEncoded}`;
+                    
+                    console.log(`Carregando EspoCRM URL: ${espocrmUrl}`);
+
+                    // Atualiza o iframe para carregar a página do EspoCRM
+                    const iframe = document.getElementById('espocrm-iframe');
+                    const loadingMessage = document.getElementById('loading-message');
+                    
+                    iframe.src = espocrmUrl;
+                    iframe.style.display = 'block'; // Mostra o iframe
+                    loadingMessage.style.display = 'none'; // Esconde a mensagem de carregamento
+                } else {
+                    document.getElementById('loading-message').innerText = 'Nenhum e-mail associado a este contato para pesquisar no EspoCRM.';
+                }
+            }
+        });
+
+        // Envia uma mensagem para o Chatwoot para indicar que o painel está pronto
+        window.parent.postMessage({ event: 'app:ready' }, '*');
+    </script>
+</body>
+</html>

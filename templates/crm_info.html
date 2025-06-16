@@ -10,10 +10,13 @@
         .card-header { font-weight: bold; border-bottom: 1px solid #e1e4e8; padding-bottom: 8px; margin-bottom: 8px; font-size: 16px; }
         .info-row { margin-bottom: 5px; }
         .label { font-weight: 600; }
-        .error, .not-found { color: #d73a49; background-color: #ffdce0; padding: 10px; border-radius: 5px; }
+        .error, .not-found, .loading { padding: 10px; border-radius: 5px; }
+        .error { color: #d73a49; background-color: #ffdce0; }
+        .not-found { color: #586069; background-color: #f6f8fa; }
+        .loading { color: #586069; }
         a { color: #0366d6; text-decoration: none; }
         a:hover { text-decoration: underline; }
-        .button { display: inline-block; padding: 8px 12px; background-color: #2ea44f; color: white; border-radius: 5px; text-decoration: none; text-align: center; margin-top: 10px; }
+        .button { display: inline-block; padding: 8px 12px; background-color: #2ea44f; color: white !important; border-radius: 5px; text-decoration: none; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -21,11 +24,16 @@
     <div class="card">
         {% if error %}
             <div class="error">{{ error }}</div>
+        
+        {% elif loading %}
+            <div class="loading">Aguardando dados do Chatwoot...</div>
+
         {% elif not_found %}
             <div class="not-found">
                 Contato com e-mail <strong>{{ email }}</strong> não encontrado no EspoCRM.
             </div>
             <a href="{{ espocrm_base_url }}#Contact/create" target="_blank" class="button">Criar Novo Contato</a>
+
         {% elif contact %}
             <div class="card-header">
                 <a href="{{ espocrm_base_url }}#Contact/view/{{ contact.id }}" target="_blank">

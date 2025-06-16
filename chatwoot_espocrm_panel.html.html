@@ -5,65 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel EspoCRM</title>
     <style>
-        /* Estilos para garantir que o iframe ocupe todo o espaço */
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            font-family: sans-serif;
-            background-color: #f4f6f8; /* Cor de fundo semelhante ao Chatwoot */
-        }
-        #espocrm-iframe {
-            border: none;
-            height: 100%;
-            width: 100%;
-        }
-        #loading-message {
-            padding: 20px;
-            color: #555;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: sans-serif; display: flex; flex-direction: column; background-color: #f4f6f8; }
+        #tab-container { padding: 8px; background-color: #e9ecef; flex-shrink: 0; border-bottom: 1px solid #dee2e6; }
+        .tab-button { padding: 6px 12px; border: 1px solid #ccc; background-color: #fff; cursor: pointer; border-radius: 4px; margin-right: 5px; font-size: 14px; }
+        .tab-button.active { background-color: #007bff; color: white; border-color: #007bff; }
+        #iframe-container { flex-grow: 1; }
+        #espocrm-iframe { border: none; height: 100%; width: 100%; }
+        #loading-message { padding: 20px; color: #555; text-align: center; }
     </style>
 </head>
 <body>
-    <div id="loading-message">Carregando informações do EspoCRM...</div>
-    <iframe id="espocrm-iframe" style="display:none;"></iframe>
+
+    <div id="tab-container" style="display:none;">
+        <button id="btn-lead" class="tab-button active">Procurar em Leads</button>
+        <button id="btn-contact" class="tab-button">Procurar em Contatos</button>
+    </div>
+
+    <div id="iframe-container">
+        <div id="loading-message">Carregando informações do EspoCRM...</div>
+        <iframe id="espocrm-iframe" style="display:none;"></iframe>
+    </div>
 
     <script>
         // ******************************************************
         // ** CONFIGURE ESTA VARIÁVEL **
-        // Substitua pela URL base da sua instância do EspoCRM
-        const ESPO_BASE_URL = 'https://espocrm.dominioautomacao.com';
+        const ESPO_BASE_URL = 'https://espocrm.domicicautomacao.com'; //  <-- COLOQUE SUA URL AQUI
         // ******************************************************
 
-        // Ouve a mensagem enviada pelo Chatwoot
+        const btnLead = document.getElementById('btn-lead');
+        const btnContact = document.getElementById('btn-contact');
+        const iframe = document.getElementById('espocrm-iframe');
+        const loadingMessage = document.getElementById('loading-message');
+        const tabContainer = document.getElementById('tab-container');
+        
+        let leadUrl = '';
+        let contactUrl = '';
+
         window.addEventListener('message', function(event) {
-            // Verifica se a mensagem é do tipo esperado pelo Chatwoot
             if (event.data.event === 'chatwoot:on-message') {
                 const conversation = event.data.data;
                 const contact = conversation.contact;
 
                 if (contact && contact.email) {
-                    // Se houver um contato com e-mail, construa a URL de pesquisa do EspoCRM
-                    // Esta URL pesquisa por um Contato com o endereço de e-mail correspondente.
                     const emailEncoded = encodeURIComponent(`'${contact.email}'`);
-                    const espocrmUrl = `<span class="math-inline">\{ESPO\_BASE\_URL\}/\#Lead/list?search\=emailAddress%3D%3D</span>{emailEncoded}`;
                     
-                    console.log(`Carregando EspoCRM URL: ${espocrmUrl}`);
+                    // Constrói as duas URLs
+                    leadUrl = `${ESPO_BASE_URL}/#Lead/list?search=emailAddress%3D%3D${emailEncoded}`;
+                    contactUrl = `${ESPO_BASE_URL}/#Contact/list?search=emailAddress%3D%3D${emailEncoded}`;
+                    
+                    // Mostra os botões e o iframe, esconde o carregamento
+                    loadingMessage.style.display = 'none';
+                    tabContainer.style.display = 'block';
+                    iframe.style.display = 'block';
 
-                    // Atualiza o iframe para carregar a página do EspoCRM
-                    const iframe = document.getElementById('espocrm-iframe');
-                    const loadingMessage = document.getElementById('loading-message');
+                    // Carrega a visualização de Leads por padrão
+                    iframe.src = leadUrl;
                     
-                    iframe.src = espocrmUrl;
-                    iframe.style.display = 'block'; // Mostra o iframe
-                    loadingMessage.style.display = 'none'; // Esconde a mensagem de carregamento
                 } else {
-                    document.getElementById('loading-message').innerText = 'Nenhum e-mail associado a este contato para pesquisar no EspoCRM.';
+                    tabContainer.style.display = 'none';
+                    loadingMessage.innerText = 'Nenhum e-mail associado a este contato para pesquisar no EspoCRM.';
                 }
             }
         });
+
+        btnLead.onclick = function() {
+            iframe.src = leadUrl;
+            btnLead.classList.add('active');
+            btnContact.classList.remove('active');
+        };
+
+        btnContact.onclick = function() {
+            iframe.src = contactUrl;
+            btnContact.classList.add('active');
+            btnLead.classList.remove('active');
+        };
 
         // Envia uma mensagem para o Chatwoot para indicar que o painel está pronto
         window.parent.postMessage({ event: 'app:ready' }, '*');

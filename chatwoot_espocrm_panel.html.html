@@ -34,7 +34,7 @@
         // ******************************************************
         // ** CONFIGURE ESTA VARIÁVEL **
         // Substitua pela URL base da sua instância do EspoCRM
-        const ESPO_BASE_URL = 'https://seu-dominio-espocrm.com';
+        const ESPO_BASE_URL = 'https://espocrm.dominioautomacao.com';
         // ******************************************************
 
         // Ouve a mensagem enviada pelo Chatwoot
@@ -48,7 +48,7 @@
                     // Se houver um contato com e-mail, construa a URL de pesquisa do EspoCRM
                     // Esta URL pesquisa por um Contato com o endereço de e-mail correspondente.
                     const emailEncoded = encodeURIComponent(`'${contact.email}'`);
-                    const espocrmUrl = `${ESPO_BASE_URL}/#Contact/list?search=emailAddress%3D%3D${emailEncoded}`;
+                    const espocrmUrl = `<span class="math-inline">\{ESPO\_BASE\_URL\}/\#Lead/list?search\=emailAddress%3D%3D</span>{emailEncoded}`;
                     
                     console.log(`Carregando EspoCRM URL: ${espocrmUrl}`);
 

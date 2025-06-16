@@ -7,30 +7,33 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# As variáveis ESPOCRM_URL e ESPOCRM_API_KEY serão lidas do ambiente do Render
 ESPOCRM_URL = os.getenv("ESPOCRM_URL")
 ESPOCRM_API_KEY = os.getenv("ESPOCRM_API_KEY")
 
-# --- MUDANÇA AQUI: Permitimos os métodos GET e POST ---
 @app.route('/webhook', methods=['GET', 'POST'])
 def chatwoot_webhook():
-    # --- MUDANÇA AQUI: Adicionamos um tratamento para o método GET ---
-    # Se for um GET, apenas exibe uma mensagem de carregamento.
-    # É isso que o Chatwoot faz para carregar o iframe pela primeira vez.
     if request.method == 'GET':
         return render_template('crm_info.html', loading=True)
 
-    # O resto do código (lógica do POST) continua igual
+    # A partir daqui é a lógica do POST
+    print("--- LOG DE DEPURAÇÃO: REQUISIÇÃO POST RECEBIDA ---")
+
     if not ESPOCRM_URL or not ESPOCRM_API_KEY:
         error_message = "Erro de configuração no servidor: As variáveis ESPOCRM_URL ou ESPOCRM_API_KEY não foram definidas."
+        print(f"LOG DE ERRO: {error_message}")
         return render_template('crm_info.html', error=error_message)
         
     try:
+        # Tenta pegar o JSON. Se falhar, é um grande indício.
         data = request.json
+        print(f"LOG DE DEPURAÇÃO: Dados recebidos do Chatwoot -> {data}")
+
         contact = data.get('contact', {})
         email = contact.get('email')
+        print(f"LOG DE DEPURAÇÃO: Email extraído -> {email}")
 
         if not email:
+            print("LOG DE ERRO: Contato no Chatwoot não possui email.")
             return render_template('crm_info.html', error="Contato sem e-mail no Chatwoot.")
 
         headers = {
@@ -39,26 +42,27 @@ def chatwoot_webhook():
         }
         
         search_url = f"{ESPOCRM_URL}Contact?where[0][type]=equals&where[0][attribute]=emailAddress&where[0][value]={email}"
+        print(f"LOG DE DEPURAÇÃO: Consultando a URL -> {search_url}")
         
         response = requests.get(search_url, headers=headers)
+        print(f"LOG DE DEPURAÇÃO: Resposta do EspoCRM (Status Code) -> {response.status_code}")
+        
         response.raise_for_status()
 
         search_result = response.json()
+        print(f"LOG DE DEPURAÇÃO: Resultado da busca -> {search_result}")
         
         espocrm_base_url = ESPOCRM_URL.replace("/api/v1/", "/")
 
         if search_result.get('total') > 0:
+            print("LOG DE DEPURAÇÃO: Contato encontrado. Renderizando dados.")
             contact_data = search_result.get('list')[0]
             return render_template('crm_info.html', contact=contact_data, espocrm_base_url=espocrm_base_url)
         else:
+            print("LOG DE DEPURAÇÃO: Contato não encontrado. Renderizando aviso.")
             return render_template('crm_info.html', not_found=True, email=email, espocrm_base_url=espocrm_base_url)
 
-    except requests.exceptions.RequestException as e:
-        return render_template('crm_info.html', error=f"Erro de comunicação com o EspoCRM: {e}")
     except Exception as e:
-        return render_template('crm_info.html', error=f"Ocorreu um erro inesperado: {e}")
-
-# Rota de teste para verificar se o app está no ar
-@app.route('/')
-def index():
-    return "A ponte Chatwoot-EspoCRM está no ar!"
+        # Captura qualquer erro no processo e o exibe no log e na tela
+        print(f"--- LOG DE ERRO INESPERADO: {e} ---")
+        return render_template('crm_info.html', error=f"Ocorreu um erro inesperado no servidor: {e}")

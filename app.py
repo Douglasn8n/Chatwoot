@@ -11,13 +11,20 @@ app = Flask(__name__)
 ESPOCRM_URL = os.getenv("ESPOCRM_URL")
 ESPOCRM_API_KEY = os.getenv("ESPOCRM_API_KEY")
 
-@app.route('/webhook', methods=['POST'])
+# --- MUDANÇA AQUI: Permitimos os métodos GET e POST ---
+@app.route('/webhook', methods=['GET', 'POST'])
 def chatwoot_webhook():
-    # Verifica se as variáveis de ambiente foram carregadas
+    # --- MUDANÇA AQUI: Adicionamos um tratamento para o método GET ---
+    # Se for um GET, apenas exibe uma mensagem de carregamento.
+    # É isso que o Chatwoot faz para carregar o iframe pela primeira vez.
+    if request.method == 'GET':
+        return render_template('crm_info.html', loading=True)
+
+    # O resto do código (lógica do POST) continua igual
     if not ESPOCRM_URL or not ESPOCRM_API_KEY:
         error_message = "Erro de configuração no servidor: As variáveis ESPOCRM_URL ou ESPOCRM_API_KEY não foram definidas."
         return render_template('crm_info.html', error=error_message)
-
+        
     try:
         data = request.json
         contact = data.get('contact', {})
@@ -30,14 +37,14 @@ def chatwoot_webhook():
             'X-Api-Key': ESPOCRM_API_KEY,
             'Content-Type': 'application/json'
         }
-
+        
         search_url = f"{ESPOCRM_URL}Contact?where[0][type]=equals&where[0][attribute]=emailAddress&where[0][value]={email}"
-
+        
         response = requests.get(search_url, headers=headers)
         response.raise_for_status()
 
         search_result = response.json()
-
+        
         espocrm_base_url = ESPOCRM_URL.replace("/api/v1/", "/")
 
         if search_result.get('total') > 0:
